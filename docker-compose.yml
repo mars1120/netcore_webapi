@@ -1,0 +1,9 @@
+﻿services:
+  webapplication1:
+    image: webapplication1
+    build:
+      context: .
+      dockerfile: WebApplication1/Dockerfile
+    ports:
+      - "5095:8080"  # HTTP port mapping
+      - "7100:8081"  # HTTPS port mapping
