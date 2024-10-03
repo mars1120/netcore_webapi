@@ -7,3 +7,10 @@
     ports:
       - "5095:8080"  # HTTP port mapping
       - "7100:8081"  # HTTPS port mapping
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
+    volumes:
+      - ${USERPROFILE}/.aspnet/https:/https:ro

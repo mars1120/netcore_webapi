@@ -20,4 +20,5 @@ RUN dotnet publish "WebApplication1.csproj" -c $BUILD_CONFIGURATION -o /app/publ
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+COPY ["${USERPROFILE}/.aspnet/https/aspnetapp.pfx", "/root/.aspnet/https/"]
 ENTRYPOINT ["dotnet", "WebApplication1.dll"]

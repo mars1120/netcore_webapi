@@ -1,0 +1,26 @@
+dotnet new webapi -controllers -f net8.0
+
+dotnet dev-certs https --clean
+
+dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pfx"  -p $CREDENTIAL_PLACEHOLDER$
+ex: dotnet dev-certs https -ep "$env:USERPROFILE\.aspnet\https\aspnetapp.pfx"  -p 123456
+
+dotnet dev-certs https --trust
+
+dotnet run --launch-profile https
+
+dotnet tool install -g Microsoft.dotnet-httprepl
+
+httprepl  https://localhost:7100
+
+ls
+
+cd WeatherForecast
+
+get
+
+exit
+
+
+dotnet ef dbcontext scaffold "Server=(localdb)\MSSQLLocalDB;Database=xxxxDB;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models
+
