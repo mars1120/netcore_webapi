@@ -1,4 +1,5 @@
 using WebApplication1.Models;
+using WebApplication1.Models.Dto;
 
 namespace WebApplication1.Controllers;
 
@@ -22,149 +23,136 @@ public class CurrentLangCurrencyController : ControllerBase
 
     // GET: api/CurrentLangCurrency
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CurrentLangCurrency>>> GetCurrentLangCurrencies()
+    public async Task<ActionResult<IEnumerable<CurrentLangCurrencyDto>>> GetCurrentLangCurrencies()
     {
-        return await _context.CurrentLangCurrencies.ToListAsync();
+        var currentLangCurrencies = await _context.CurrentLangCurrencies
+            .Select(clc => new CurrentLangCurrencyDto
+            {
+                CurrentLang = clc.CurrentLang,
+                LangId = clc.LangId,
+                CurrencyId = clc.CurrencyId,
+                LangTitle = clc.LangTitle,
+                UpdatedAt = clc.UpdatedAt
+            })
+            .ToListAsync();
+
+        return Ok(currentLangCurrencies);
     }
 
     // GET: api/CurrentLangCurrency/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<CurrentLangCurrency>> GetCurrentLangCurrency(int id)
+    public async Task<ActionResult<IEnumerable<CurrentLangCurrencyDto>>> GetCurrentLangCurrency(int id)
     {
-        var currentLangCurrency = await _context.CurrentLangCurrencies.FindAsync(id);
+        var currentLangCurrencies = await _context.CurrentLangCurrencies
+            .Where(clc => clc.Id == id)
+            .Select(clc => new CurrentLangCurrencyDto
+            {
+                CurrentLang = clc.CurrentLang,
+                LangId = clc.LangId,
+                CurrencyId = clc.CurrencyId,
+                LangTitle = clc.LangTitle,
+                UpdatedAt = clc.UpdatedAt
+            })
+            .ToListAsync();
 
-        if (currentLangCurrency == null)
+        if (!currentLangCurrencies.Any())
         {
             return NotFound();
         }
 
-        return currentLangCurrency;
+        return Ok(currentLangCurrencies);
     }
 
-    // GET: api/CurrentLangCurrency/currency/1
-    [HttpGet("currency/{currencyId}")]
-    public async Task<ActionResult<IEnumerable<CurrentLangCurrency>>> GetCurrentLangCurrenciesByCurrencyId(
-        int currencyId)
-    {
-        return await _context.CurrentLangCurrencies
-            .Where(clc => clc.CurrencyId == currencyId)
-            .ToListAsync();
-    }
-
-    // GET: api/CurrentLangCurrency/language/1
-    [HttpGet("language/{langId}")]
-    public async Task<ActionResult<CurrentLangCurrency>> GetCurrentLangCurrencyByLangId(int langId)
+    // GET: api/CurrentLangCurrency/{cid}/{lanid}
+    [HttpGet("{cid}/{lanid}")]
+    public async Task<ActionResult<CurrentLangCurrencyDto>> GetCurrentLangCurrency(int cid, int lanid)
     {
         var currentLangCurrency = await _context.CurrentLangCurrencies
-            .FirstOrDefaultAsync(clc => clc.LangId == langId);
+            .FirstOrDefaultAsync(clc => clc.LangId == lanid && clc.CurrencyId == cid);
 
         if (currentLangCurrency == null)
         {
             return NotFound();
         }
 
-        return currentLangCurrency;
+        var dto = new CurrentLangCurrencyDto
+        {
+            CurrentLang = currentLangCurrency.CurrentLang,
+            LangId = currentLangCurrency.LangId,
+            CurrencyId = currentLangCurrency.CurrencyId,
+            LangTitle = currentLangCurrency.LangTitle,
+            UpdatedAt = currentLangCurrency.UpdatedAt
+        };
+
+        return Ok(dto);
     }
 
-    // POST: api/CurrentLangCurrency
-    [HttpPost]
-    public async Task<ActionResult<CurrentLangCurrency>> PostCurrentLangCurrency(
-        CurrentLangCurrency currentLangCurrency)
+
+    // POST: api/CurrentLangCurrency/{cid}/{lanid}
+    [HttpPost("{cid}/{lanid}")]
+    public async Task<ActionResult<CurrentLangCurrencyDto>> PostCurrentLangCurrency(int cid, int lanid, string langName)
     {
-        var count = await _context.CurrentLangCurrencies
-            .CountAsync(c => c.CurrencyId == currentLangCurrency.CurrencyId);
-
-        if (count >= 2)
+        // Check if Currency exists
+        var currency = await _context.Currencies.FindAsync(cid);
+        if (currency == null)
         {
-            return BadRequest("A currency cannot be associated with more than two languages.");
+            return BadRequest($"Currency with id {cid} does not exist.");
         }
 
-        if (await _context.CurrentLangCurrencies.AnyAsync(c => c.LangId == currentLangCurrency.LangId))
+        // Check if Language exists
+        var language = await _context.Languages.FindAsync(lanid);
+        if (language == null)
         {
-            return Conflict("This language is already associated with a currency.");
+            return BadRequest($"Language with id {lanid} does not exist.");
         }
 
-        _context.CurrentLangCurrencies.Add(currentLangCurrency);
-        await _context.SaveChangesAsync();
+        // Check if a CurrentLangCurrency already exists for this currency and language combination
+        var existingEntry = await _context.CurrentLangCurrencies
+            .FirstOrDefaultAsync(clc => clc.CurrencyId == cid && clc.LangId == lanid);
 
-        return CreatedAtAction(nameof(GetCurrentLangCurrency), new { id = currentLangCurrency.Id },
-            currentLangCurrency);
-    }
+        CurrentLangCurrency entry;
 
-    // PUT: api/CurrentLangCurrency/5
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutCurrentLangCurrency(int id, CurrentLangCurrency currentLangCurrency)
-    {
-        if (id != currentLangCurrency.Id)
+        if (existingEntry != null)
         {
-            return BadRequest();
+            // Update existing entry
+            existingEntry.LangTitle = langName;
+            existingEntry.UpdatedAt = DateTime.UtcNow;
+            entry = existingEntry;
         }
-
-        var existingEntry = await _context.CurrentLangCurrencies.FindAsync(id);
-        if (existingEntry == null)
+        else
         {
-            return NotFound();
-        }
-
-        if (existingEntry.CurrencyId != currentLangCurrency.CurrencyId)
-        {
-            var count = await _context.CurrentLangCurrencies
-                .CountAsync(c => c.CurrencyId == currentLangCurrency.CurrencyId);
-
-            if (count >= 2)
+            // Create new entry
+            entry = new CurrentLangCurrency
             {
-                return BadRequest("A currency cannot be associated with more than two languages.");
-            }
-        }
+                CurrentLang = language.LangCode,
+                LangId = lanid,
+                CurrencyId = cid,
+                LangTitle = langName,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-        if (existingEntry.LangId != currentLangCurrency.LangId)
-        {
-            if (await _context.CurrentLangCurrencies.AnyAsync(c =>
-                    c.LangId == currentLangCurrency.LangId && c.Id != id))
-            {
-                return Conflict("This language is already associated with a currency.");
-            }
+            _context.CurrentLangCurrencies.Add(entry);
         }
-
-        _context.Entry(currentLangCurrency).State = EntityState.Modified;
 
         try
         {
             await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!CurrentLangCurrencyExists(id))
+
+            var dto = new CurrentLangCurrencyDto
             {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+                CurrentLang = entry.CurrentLang,
+                LangId = entry.LangId,
+                CurrencyId = entry.CurrencyId,
+                LangTitle = entry.LangTitle,
+                UpdatedAt = entry.UpdatedAt
+            };
+
+            return Ok(dto);
         }
-
-        return NoContent();
-    }
-
-    // DELETE: api/CurrentLangCurrency/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCurrentLangCurrency(int id)
-    {
-        var currentLangCurrency = await _context.CurrentLangCurrencies.FindAsync(id);
-        if (currentLangCurrency == null)
+        catch (DbUpdateException)
         {
-            return NotFound();
+            return StatusCode(500, "An error occurred while saving the entry. Please try again.");
         }
-
-        _context.CurrentLangCurrencies.Remove(currentLangCurrency);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    private bool CurrentLangCurrencyExists(int id)
-    {
-        return _context.CurrentLangCurrencies.Any(e => e.Id == id);
     }
 }
