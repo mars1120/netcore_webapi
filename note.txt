@@ -22,5 +22,5 @@ get
 exit
 
 
-dotnet ef dbcontext scaffold "Server=(localdb)\MSSQLLocalDB;Database=xxxxDB;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models
+dotnet ef dbcontext scaffold "Server=(localdb)\MSSQLLocalDB;Database=CurrencyDB;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models
 
