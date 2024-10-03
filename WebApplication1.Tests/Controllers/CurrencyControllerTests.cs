@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -12,6 +13,7 @@ using NUnit.Framework;
 using WebApplication1.Controllers;
 using WebApplication1.Models;
 using Newtonsoft.Json;
+using WebApplication1.Models.Dto;
 using WebApplication1.Tests.Interface;
 
 namespace WebApplication1.Tests.Controllers
@@ -31,29 +33,67 @@ namespace WebApplication1.Tests.Controllers
             _controller = new CurrencyController(_mockContext.Object, _mockHttpClientFactory.Object);
         }
 
-
         [Test]
-        public async Task GetCurrencies_ReturnsAllCurrencies()
+        public async Task GetCombinedCurrencies_ReturnsSortedCombinedData()
         {
             // Arrange
             var currenciesList = new List<Currency>
             {
-                new Currency { Id = 1, Code = "USD", Rate = 1 },
-                new Currency { Id = 2, Code = "EUR", Rate = 0.85m }
+                new Currency
+                {
+                    Id = 1, Code = "USD", Symbol = "$", Description = "US Dollar", Rate = 1m, RateFloat = 1m,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Currency
+                {
+                    Id = 2, Code = "EUR", Symbol = "€", Description = "Euro", Rate = 0.85m, RateFloat = 0.85m,
+                    UpdatedAt = DateTime.UtcNow
+                }
             };
-            var mockDbSet = MockDbSet(currenciesList);
-            _mockContext.Setup(c => c.Currencies).Returns(mockDbSet.Object);
+            var currentLangCurrenciesList = new List<CurrentLangCurrency>
+            {
+                new CurrentLangCurrency { Id = 1, CurrencyId = 1, CurrentLang = "zh-tw", LangTitle = "美元" },
+                new CurrentLangCurrency { Id = 2, CurrencyId = 2, CurrentLang = "zh-tw", LangTitle = "歐元" }
+            };
+
+            var mockCurrencyDbSet = MockDbSet(currenciesList);
+            var mockCurrentLangCurrencyDbSet = MockDbSet(currentLangCurrenciesList);
+
+            _mockContext.Setup(c => c.Currencies).Returns(mockCurrencyDbSet.Object);
+            _mockContext.Setup(c => c.CurrentLangCurrencies).Returns(mockCurrentLangCurrencyDbSet.Object);
 
             // Act
-            var result = await _controller.GetCurrencies();
+            var result = await _controller.GetCombinedCurrencies();
 
             // Assert
-            Assert.That(result.Value, Is.Not.Null);
-            var currencies = result.Value as List<Currency>;
-            Assert.That(currencies, Is.Not.Null);
-            Assert.That(currencies.Count, Is.EqualTo(2));
-            Assert.That(currencies[0].Code, Is.EqualTo("USD"));
-            Assert.That(currencies[1].Code, Is.EqualTo("EUR"));
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            var okResult = result.Result as OkObjectResult;
+            Assert.That(okResult, Is.Not.Null);
+
+            var combinedCurrencies = okResult.Value as IEnumerable<CurrencyInfoDto>;
+            Assert.That(combinedCurrencies, Is.Not.Null);
+
+            var currencyList = combinedCurrencies.ToList();
+            Assert.That(currencyList.Count, Is.EqualTo(2));
+
+            // Check if sorted by Code
+            Assert.That(currencyList[0].Code, Is.EqualTo("EUR"));
+            Assert.That(currencyList[1].Code, Is.EqualTo("USD"));
+
+            // Check combined data
+            Assert.That(currencyList[0].LangTitle, Is.EqualTo("歐元"));
+            Assert.That(currencyList[1].LangTitle, Is.EqualTo("美元"));
+
+            // Check other properties
+            Assert.That(currencyList[0].Symbol, Is.EqualTo("€"));
+            Assert.That(currencyList[0].Description, Is.EqualTo("Euro"));
+            Assert.That(currencyList[0].Rate, Is.EqualTo(0.85m));
+            Assert.That(currencyList[0].RateFloat, Is.EqualTo(0.85m));
+
+            Assert.That(currencyList[1].Symbol, Is.EqualTo("$"));
+            Assert.That(currencyList[1].Description, Is.EqualTo("US Dollar"));
+            Assert.That(currencyList[1].Rate, Is.EqualTo(1m));
+            Assert.That(currencyList[1].RateFloat, Is.EqualTo(1m));
         }
 
         [Test]
@@ -126,8 +166,8 @@ namespace WebApplication1.Tests.Controllers
                         ChartName = "Bitcoin",
                         Bpi = new Dictionary<string, CurrencyInfo>
                         {
-                            { "USD", new CurrencyInfo { Code = "USD", Rate = "1", RateFloat = 1m } },
-                            { "EUR", new CurrencyInfo { Code = "EUR", Rate = "0.85", RateFloat = 0.85m } }
+                            { "USD", new CurrencyInfo { Code = "USD", Rate = 1, RateFloat = 1m } },
+                            { "EUR", new CurrencyInfo { Code = "EUR", Rate = 0.85m, RateFloat = 0.85m } }
                         }
                     }), System.Text.Encoding.UTF8, "application/json")
                 });

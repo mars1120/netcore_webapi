@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using WebApplication1.Models;
+using WebApplication1.Models.Dto;
 
 namespace WebApplication1.Controllers;
 
@@ -21,6 +22,31 @@ public class CurrencyController : ControllerBase
     {
         _context = context;
         _clientFactory = clientFactory;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<CurrencyInfoDto>>> GetCombinedCurrencies()
+    {
+        var currencies = await _context.Currencies.ToListAsync();
+
+        // get all lang info
+        var currentLangCurrencies = await _context.CurrentLangCurrencies.ToListAsync();
+
+        // combined
+        var combinedData = currencies.Select(c => new CurrencyInfoDto
+        {
+            Id = c.Id,
+            Code = c.Code,
+            Symbol = c.Symbol,
+            Description = c.Description,
+            Rate = c.Rate,
+            RateFloat = c.RateFloat,
+            LangTitle = currentLangCurrencies
+                .FirstOrDefault(clc => clc.CurrencyId == c.Id && clc.CurrentLang == "zh-tw")?.LangTitle,
+            UpdatedAt = c.UpdatedAt
+        });
+
+        return Ok(combinedData.OrderBy(c => c.Code));
     }
 
     // GET: api/Currency/UpdateFromCoinDesk
@@ -57,7 +83,8 @@ public class CurrencyController : ControllerBase
                     else
                     {
                         currency.Description = rate.Description;
-                        currency.Rate = rate.RateFloat;
+                        currency.Rate = rate.Rate;
+                        currency.RateFloat = rate.RateFloat;
                         currency.Symbol = rate.Symbol;
                         currency.UpdatedAt = DateTime.UtcNow;
                     }
@@ -80,17 +107,9 @@ public class CurrencyController : ControllerBase
         }
     }
 
-
-    // GET: api/Currency
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Currency>>> GetCurrencies()
-    {
-        return await _context.Currencies.ToListAsync();
-    }
-
-    // GET: api/Currency/5
+    // GET: api/Currency/1
     [HttpGet("{id}")]
-    public async Task<ActionResult<Currency>> GetCurrency(int id)
+    public async Task<ActionResult<CurrencyInfoDto>> GetCurrency(int id)
     {
         var currency = await _context.Currencies.FindAsync(id);
 
@@ -99,10 +118,25 @@ public class CurrencyController : ControllerBase
             return NotFound();
         }
 
-        return Ok(currency);
+        // get all lang info
+        var currentLangCurrencies = await _context.CurrentLangCurrencies.ToListAsync();
+
+        return Ok(new CurrencyInfoDto
+        {
+            Id = currency.Id,
+            Code = currency.Code,
+            Symbol = currency.Symbol,
+            Description = currency.Description,
+            Rate = currency.Rate,
+            RateFloat = currency.RateFloat,
+            LangTitle = currentLangCurrencies
+                .FirstOrDefault(clc => clc.CurrencyId == currency.Id && clc.CurrentLang == "zh-tw")?.LangTitle,
+            UpdatedAt = currency.UpdatedAt
+        });
     }
 
     // POST: api/Currency
+    [NonAction]
     [HttpPost]
     public async Task<ActionResult<Currency>> PostCurrency(Currency currency)
     {
@@ -113,6 +147,7 @@ public class CurrencyController : ControllerBase
     }
 
     // PUT: api/Currency/5
+    [NonAction]
     [HttpPut("{id}")]
     public async Task<IActionResult> PutCurrency(int id, Currency currency)
     {

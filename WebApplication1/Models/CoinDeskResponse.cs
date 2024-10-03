@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace WebApplication1.Models
 {
     public class CoinDeskResponse
@@ -26,10 +28,11 @@ namespace WebApplication1.Models
 
         public string Symbol { get; set; }
 
-        public string Rate { get; set; }
+        public decimal Rate { get; set; }
 
         public string Description { get; set; }
-
+        
+        [JsonProperty("rate_float")]
         public decimal RateFloat { get; set; }
     }
 }

@@ -14,7 +14,6 @@ public partial class Currency
 
     public string Description { get; set; } = null!;
 
-    [Column("rate_float")]
     public decimal RateFloat { get; set; }
 
     public DateTime CreatedAt { get; set; }
