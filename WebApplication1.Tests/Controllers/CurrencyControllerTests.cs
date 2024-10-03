@@ -102,7 +102,12 @@ namespace WebApplication1.Tests.Controllers
             // Arrange
             var currency = new Currency { Id = 1, Code = "USD", Rate = 1 };
             _mockContext.Setup(c => c.Currencies.FindAsync(1)).ReturnsAsync(currency);
-
+            var currentLangList = new List<CurrentLangCurrency>
+            {
+                new CurrentLangCurrency { }
+            };
+            var mockCurrentLangListDbSet = MockDbSet(currentLangList);
+            _mockContext.Setup(c => c.CurrentLangCurrencies).Returns(mockCurrentLangListDbSet.Object);
             // Act
             var result = await _controller.GetCurrency(1);
 
@@ -110,7 +115,7 @@ namespace WebApplication1.Tests.Controllers
             Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
             var actionResult = result.Result as OkObjectResult;
             Assert.That(actionResult, Is.Not.Null);
-            var returnedCurrency = actionResult.Value as Currency;
+            var returnedCurrency = actionResult.Value as CurrencyInfoDto;
             Assert.That(returnedCurrency.Code, Is.EqualTo("USD"));
         }
 
