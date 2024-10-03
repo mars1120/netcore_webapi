@@ -27,3 +27,8 @@ CREATE TABLE CurrentLangCurrency (
     CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
 );
+
+
+ "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=CurrencyDB;Trusted_Connection=True;"
+  }

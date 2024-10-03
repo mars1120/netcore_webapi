@@ -142,22 +142,6 @@ public class CurrencyController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/Currency/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCurrency(int id)
-    {
-        var currency = await _context.Currencies.FindAsync(id);
-        if (currency == null)
-        {
-            return NotFound();
-        }
-
-        _context.Currencies.Remove(currency);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
     private bool CurrencyExists(int id)
     {
         return _context.Currencies.Any(e => e.Id == id);

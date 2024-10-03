@@ -24,3 +24,8 @@ exit
 
 dotnet ef dbcontext scaffold "Server=(localdb)\MSSQLLocalDB;Database=CurrencyDB;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models
 
+
+
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Password1"  -p 1401:1433 --name sql1 --hostname sql1 -d    mcr.microsoft.com/mssql/server:2022-latest
+
+docker cp CurrencyDB.mdf sql1:/var/opt/mssql/data

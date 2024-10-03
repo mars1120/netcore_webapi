@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.Models;
 
@@ -15,6 +14,7 @@ public partial class Currency
 
     public string Description { get; set; } = null!;
 
+    [Column("rate_float")]
     public decimal RateFloat { get; set; }
 
     public DateTime CreatedAt { get; set; }

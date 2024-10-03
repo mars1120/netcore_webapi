@@ -12,5 +12,30 @@
       - ASPNETCORE_URLS=https://+:8081;http://+:8080
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
       - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
+      - ConnectionStrings__DefaultConnection=Server=sql1,1433;Database=CurrencyDB;User Id=sa;Password=Password1;TrustServerCertificate=True;
     volumes:
       - ${USERPROFILE}/.aspnet/https:/https:ro
+    depends_on:
+      - sql1
+    networks:
+      - app_network
+
+  sql1:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Password1
+    ports:
+      - "1401:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  sqldata:
+    driver: local
